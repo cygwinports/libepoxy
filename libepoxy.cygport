@@ -1,0 +1,28 @@
+NAME="libepoxy"
+VERSION=1.2
+RELEASE=1
+CATEGORY="Libs"
+SUMMARY="OpenGL function dispatch library"
+DESCRIPTION="Epoxy is a library for handling OpenGL function pointer management
+for you. It hides the complexity of dlopen(), dlsym(), glXGetProcAddress(),
+eglGetProcAddress(), etc. from the app developer, with very little knowledge
+needed on their part. They get to read GL specs and write code using undecorated
+function names like glCompileShader()."
+HOMEPAGE="https://github.com/anholt/libepoxy"
+SRC_URI="https://github.com/anholt/libepoxy/archive/v${VERSION}/libepoxy-v${VERSION}.tar.gz"
+PATCH_URI="
+	http://pkgs.fedoraproject.org/cgit/libepoxy.git/plain/0001-Use-the-EGL-pkgconfig-for-finding-eglplatform.h.patch
+	http://pkgs.fedoraproject.org/cgit/libepoxy.git/plain/0002-Fix-context-type-detection-if-we-find-eglGetCurrentC.patch
+	http://pkgs.fedoraproject.org/cgit/libepoxy.git/plain/0003-Avoid-name-conflicts-between-pkgconfig-s-EGL_LIBS-an.patch
+	http://pkgs.fedoraproject.org/cgit/libepoxy.git/plain/update-registry.patch
+	1.2-cygwin-dispatch.patch
+	1.2-cygwin-fvisibility.patch
+	1.2-cygwin-tests.patch
+"
+
+PKG_NAMES="libepoxy0 libepoxy-devel"
+libepoxy0_REQUIRES="libGL1"
+libepoxy0_CONTENTS="usr/bin/cygepoxy-0.dll usr/share/doc/"
+libepoxy_devel_CONTENTS="usr/include/epoxy/ usr/lib/libepoxy.dll.a usr/lib/pkgconfig/epoxy.pc"
+
+DOCS="README.md"

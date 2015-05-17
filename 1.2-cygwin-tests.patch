@@ -1,0 +1,242 @@
+--- origsrc/libepoxy-1.2/test/Makefile.am	2014-05-13 19:22:08.000000000 -0500
++++ src/libepoxy-1.2/test/Makefile.am	2015-05-17 10:58:52.341890600 -0500
+@@ -31,11 +31,13 @@ libegl_common_la_SOURCES = \
+ 	egl_common.c \
+ 	egl_common.h
+ 	$()
++libegl_common_la_LIBADD = $(EPOXY)
+ 
+ libglx_common_la_SOURCES = \
+ 	glx_common.c \
+ 	glx_common.h
+ 	$()
++libglx_common_la_LIBADD = $(EPOXY)
+ 
+ libwgl_common_la_SOURCES = \
+ 	wgl_common.c \
+@@ -179,7 +181,7 @@ glx_static_LDFLAGS = -static
+ 
+ glx_shared_znow_SOURCES = glx_static.c
+ glx_shared_znow_LDADD = $(DLOPEN_LIBS) $(EPOXY) libglx_common.la $(X11_LIBS)
+-glx_shared_znow_LDFLAGS = -z now
++#glx_shared_znow_LDFLAGS = -z now
+ 
+ khronos_typedefs_SOURCES = \
+ 	khronos_typedefs.c \
+--- origsrc/libepoxy-1.2/test/dlwrap.c	2015-05-17 11:18:26.787526300 -0500
++++ src/libepoxy-1.2/test/dlwrap.c	2015-05-17 11:04:59.051456800 -0500
+@@ -41,6 +41,16 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <assert.h>
++#ifdef __CYGWIN__
++#include <sys/cygwin.h>
++#ifdef __x86_64__
++#define RTLD_NEXT (void *)0x180040000
++#define DLSYM_ADDR (void *)0x1801246c1
++#else
++#define RTLD_NEXT (void *)0x61000000
++#define DLSYM_ADDR (void *)0x610e992c
++#endif
++#endif
+ 
+ #include "dlwrap.h"
+ 
+@@ -64,9 +74,15 @@ static struct libwrap {
+     const char *symbol_prefix;
+     void *handle;
+ } wrapped_libs[] = {
++#ifdef __CYGWIN__
++    { "cygGL-1.dll", "GL", NULL },
++    { "cygEGL-1.dll", "EGL", NULL },
++    { "cygGLESv2-2.dll", "GLES2", NULL },
++#else
+     { "libGL.so", "GL", NULL },
+     { "libEGL.so", "EGL", NULL },
+     { "libGLESv2.so", "GLES2", NULL },
++#endif
+ };
+ 
+ /* Match 'filename' against an internal list of libraries for which
+@@ -131,7 +147,11 @@ __dlclose(void *handle)
+ 
+     if (wrap < wrapped_libs ||
+         wrap >= wrapped_libs + ARRAY_SIZE(wrapped_libs)) {
++#ifdef __CYGWIN__
++        void (*real_dlclose)(void *handle) = dlwrap_real_dlsym(RTLD_NEXT, "dlclose");
++#else
+         void (*real_dlclose)(void *handle) = dlwrap_real_dlsym(RTLD_NEXT, "__dlclose");
++#endif
+         real_dlclose(handle);
+     }
+ }
+@@ -211,6 +231,9 @@ dlwrap_real_dlsym(void *handle, const ch
+     static fips_dlsym_t real_dlsym = NULL;
+ 
+     if (!real_dlsym) {
++#ifdef __CYGWIN__
++      real_dlsym = (fips_dlsym_t) DLSYM_ADDR;
++#else
+         /* FIXME: This brute-force, hard-coded searching for a versioned
+          * symbol is really ugly. The only reason I'm doing this is because
+          * I need some way to lookup the "dlsym" function in libdl, but
+@@ -262,6 +285,7 @@ dlwrap_real_dlsym(void *handle, const ch
+ 
+             exit(1);
+         }
++#endif
+     }
+ 
+     return real_dlsym(handle, name);
+@@ -276,7 +300,7 @@ override_GL_glXGetProcAddress(const char
+     if (symbol)
+         return symbol;
+ 
+-    return DEFER_TO_GL("libGL.so.1", override_GL_glXGetProcAddress,
++    return DEFER_TO_GL(wrapped_libs[0].filename, override_GL_glXGetProcAddress,
+                        "glXGetProcAddress", (name));
+ }
+ 
+@@ -289,7 +313,7 @@ override_GL_glXGetProcAddressARB(const c
+     if (symbol)
+         return symbol;
+ 
+-    return DEFER_TO_GL("libGL.so.1", override_GL_glXGetProcAddressARB,
++    return DEFER_TO_GL(wrapped_libs[0].filename, override_GL_glXGetProcAddressARB,
+                        "glXGetProcAddressARB", (name));
+ }
+ 
+@@ -310,6 +334,17 @@ override_EGL_eglGetProcAddress(const cha
+             return symbol;
+     }
+ 
+-    return DEFER_TO_GL("libEGL.so.1", override_EGL_eglGetProcAddress,
++    return DEFER_TO_GL(wrapped_libs[1].filename, override_EGL_eglGetProcAddress,
+                        "eglGetProcAddress", (name));
+ }
++
++#ifdef __CYGWIN__
++
++__attribute__((constructor))
++void _init (void)
++{
++  cygwin_internal (CW_HOOK, "dlopen", dlopen);
++  cygwin_internal (CW_HOOK, "dlsym", dlsym);
++}
++
++#endif
+--- origsrc/libepoxy-1.2/test/egl_and_glx_different_pointers.c	2014-05-13 19:22:08.000000000 -0500
++++ src/libepoxy-1.2/test/egl_and_glx_different_pointers.c	2015-05-17 11:09:31.307528900 -0500
+@@ -49,6 +49,14 @@
+ #include "glx_common.h"
+ #include "dlwrap.h"
+ 
++#ifdef __CYGWIN__
++#define GLX_LIB "cygGL-1.dll"
++#define ES2_LIB "cygGLESv2-2.dll"
++#else
++#define GLX_LIB "libGL.so.1"
++#define ES2_LIB "libGLESv2.so.2"
++#endif
++
+ #define GLX_FAKED_VENDOR_STRING "libepoxy override GLX"
+ #define EGL_FAKED_VENDOR_STRING "libepoxy override EGL"
+ 
+@@ -66,7 +74,7 @@ override_GL_glGetString(GLenum e)
+     if (e == GL_VENDOR)
+         return GLX_FAKED_VENDOR_STRING;
+ 
+-    return DEFER_TO_GL("libGL.so.1", override_GL_glGetString,
++    return DEFER_TO_GL(GLX_LIB, override_GL_glGetString,
+                        "glGetString", (e));
+ }
+ 
+@@ -76,7 +84,7 @@ override_GLES2_glGetString(GLenum e)
+     if (e == GL_VENDOR)
+         return EGL_FAKED_VENDOR_STRING;
+ 
+-    return DEFER_TO_GL("libGLESv2.so.2", override_GLES2_glGetString,
++    return DEFER_TO_GL(ES2_LIB, override_GLES2_glGetString,
+                        "glGetString", (e));
+ }
+ 
+--- origsrc/libepoxy-1.2/test/egl_without_glx.c	2015-05-17 11:18:26.802528200 -0500
++++ src/libepoxy-1.2/test/egl_without_glx.c	2015-05-17 10:49:05.170329300 -0500
+@@ -43,6 +43,20 @@
+ 
+ #include "egl_common.h"
+ 
++#ifdef __CYGWIN__
++#include <sys/cygwin.h>
++#define GLX_LIB "cygGL-1.dll"
++#define EGL_LIB "cygEGL-1.dll"
++#define ES1_LIB "cygGLESv1_CM-1.dll"
++#define ES2_LIB "cygGLESv2-2.dll"
++#else
++#define GLX_LIB "libGL.so.1"
++#define EGL_LIB "libEGL.so.1"
++#define ES1_LIB "libGLESv1_CM.so.1"
++#define ES2_LIB "libGLESv2.so.2"
++#endif
++
++
+ /**
+  * Wraps the system dlopen(), which libepoxy will end up calling when
+  * it tries to dlopen() the API libraries, and errors out the
+@@ -53,14 +67,21 @@ void *
+ dlopen(const char *filename, int flag)
+ {
+     void * (*dlopen_unwrapped)(const char *filename, int flag);
++#ifdef __CYGWIN__
++#ifdef __x86_64__
++   static void *RTLD_NEXT = (void *)0x180040000;
++#else
++   static void *RTLD_NEXT = (void *)0x61000000;
++#endif
++#endif
+ 
+-    if (!strcmp(filename, "libGL.so.1"))
++    if (!strcmp(filename, GLX_LIB))
+         return NULL;
+ #if GLES_VERSION == 2
+-    if (!strcmp(filename, "libGLESv1_CM.so.1"))
++    if (!strcmp(filename, ES1_LIB))
+         return NULL;
+ #else
+-    if (!strcmp(filename, "libGLESv2.so.2"))
++    if (!strcmp(filename, ES2_LIB))
+         return NULL;
+ #endif
+ 
+@@ -81,7 +102,7 @@ static EGLenum extra_error = EGL_SUCCESS
+ static EGLBoolean
+ override_eglBindAPI(EGLenum api)
+ {
+-    void *egl = dlopen("libEGL.so.1", RTLD_LAZY | RTLD_LOCAL);
++    void *egl = dlopen(EGL_LIB, RTLD_LAZY | RTLD_LOCAL);
+     EGLBoolean (*real_eglBindAPI)(EGLenum api) = dlsym(egl, "eglBindAPI");
+ 
+     last_api = api;
+@@ -102,7 +123,7 @@ override_eglBindAPI(EGLenum api)
+ static EGLint
+ override_eglGetError(void)
+ {
+-    void *egl = dlopen("libEGL.so.1", RTLD_LAZY | RTLD_LOCAL);
++    void *egl = dlopen(EGL_LIB, RTLD_LAZY | RTLD_LOCAL);
+     EGLint (*real_eglGetError)(void) = dlsym(egl, "eglGetError");
+ 
+     if (extra_error != EGL_SUCCESS) {
+@@ -161,3 +182,13 @@ main(int argc, char **argv)
+ 
+     return pass != true;
+ }
++
++#ifdef __CYGWIN__
++
++__attribute__((constructor))
++void _init (void)
++{
++  cygwin_internal (CW_HOOK, "dlopen", dlopen);
++}
++
++#endif
