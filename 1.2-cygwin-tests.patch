@@ -18,8 +18,8 @@
  
  glx_shared_znow_SOURCES = glx_static.c
  glx_shared_znow_LDADD = $(DLOPEN_LIBS) $(EPOXY) libglx_common.la $(X11_LIBS)
--glx_shared_znow_LDFLAGS = -z now
-+#glx_shared_znow_LDFLAGS = -z now
+-glx_shared_znow_LDFLAGS = -Wl,-z,now
++#glx_shared_znow_LDFLAGS = -Wl,-z,now
  
  khronos_typedefs_SOURCES = \
  	khronos_typedefs.c \
@@ -33,10 +33,10 @@
 +#include <sys/cygwin.h>
 +#ifdef __x86_64__
 +#define RTLD_NEXT (void *)0x180040000
-+#define DLSYM_ADDR (void *)0x1801246c1
++#define DLSYM_ADDR (void *)0x1800529f0
 +#else
 +#define RTLD_NEXT (void *)0x61000000
-+#define DLSYM_ADDR (void *)0x610e992c
++#define DLSYM_ADDR (void *)0x61028180
 +#endif
 +#endif
  
