@@ -9,3 +9,14 @@
      dnl on mingw32 we do -fvisibility=hidden and __declspec(dllexport)
      AC_DEFINE([EPOXY_PUBLIC],
                [__attribute__((visibility("default"))) __declspec(dllexport) extern],
+--- origsrc/libepoxy-1.4.3/meson.build	2017-06-06 04:55:43.000000000 -0500
++++ src/libepoxy-1.4.3/meson.build	2017-09-05 13:11:55.464742800 -0500
+@@ -162,7 +166,7 @@ libtype = get_option('default_library')
+ # Visibility compiler flags; we only use this for shared libraries
+ if libtype == 'shared'
+   visibility_cflags = []
+-  if host_system == 'windows'
++  if host_system == 'windows' or host_system == 'cygwin'
+     conf.set('DLL_EXPORT', true)
+     conf.set('EPOXY_PUBLIC', '__declspec(dllexport) extern')
+     if cc.get_id() != 'msvc'

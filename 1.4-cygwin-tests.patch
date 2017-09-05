@@ -1,3 +1,16 @@
+--- origsrc/libepoxy-1.4.3/meson.build	2017-06-06 04:55:43.000000000 -0500
++++ src/libepoxy-1.4.3/meson.build	2017-09-05 13:11:55.464742800 -0500
+@@ -80,6 +80,10 @@ elif host_system == 'darwin'
+   build_apple = true
+   build_wgl = false
+   has_znow = false
++elif host_system == 'cygwin'
++  build_apple = false
++  build_wgl = false
++  has_znow = false
+ else
+   build_apple = false
+   build_wgl = false
 --- origsrc/libepoxy-1.4.3/test/Makefile.am	2017-06-06 04:55:43.000000000 -0500
 +++ src/libepoxy-1.4.3/test/Makefile.am	2017-09-04 16:11:15.676245700 -0500
 @@ -31,11 +31,13 @@ libegl_common_la_SOURCES = \
