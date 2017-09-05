@@ -1,0 +1,11 @@
+--- origsrc/libepoxy-1.4.3/configure.ac	2017-06-06 04:55:43.000000000 -0500
++++ src/libepoxy-1.4.3/configure.ac	2017-09-04 16:07:16.307127000 -0500
+@@ -181,7 +181,7 @@ AC_SUBST([DLOPEN_LIBS])
+ VISIBILITY_CFLAGS=""
+ AS_CASE(["$host"],
+ 
+-  [*-*-mingw*], [
++  [*-*-cygwin*|*-*-mingw*], [
+     dnl on mingw32 we do -fvisibility=hidden and __declspec(dllexport)
+     AC_DEFINE([EPOXY_PUBLIC],
+               [__attribute__((visibility("default"))) __declspec(dllexport) extern],

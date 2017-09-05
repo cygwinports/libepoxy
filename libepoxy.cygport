@@ -1,5 +1,5 @@
 NAME="libepoxy"
-VERSION=1.3.1
+VERSION=1.4.3
 RELEASE=1
 CATEGORY="Libs"
 SUMMARY="OpenGL function dispatch library"
@@ -9,11 +9,11 @@ eglGetProcAddress(), etc. from the app developer, with very little knowledge
 needed on their part. They get to read GL specs and write code using undecorated
 function names like glCompileShader()."
 HOMEPAGE="https://github.com/anholt/libepoxy"
-SRC_URI="https://github.com/anholt/libepoxy/archive/v${VERSION}/libepoxy-v${VERSION}.tar.gz"
+SRC_URI="https://github.com/anholt/libepoxy/archive/${VERSION}/libepoxy-${VERSION}.tar.gz"
 PATCH_URI="
-	1.3-cygwin-dispatch.patch
-	1.2-cygwin-fvisibility.patch
-	1.2-cygwin-tests.patch
+	1.4-cygwin-dispatch.patch
+	1.4-cygwin-fvisibility.patch
+	1.4-cygwin-tests.patch
 "
 
 PKG_NAMES="libepoxy0 libepoxy-devel"
